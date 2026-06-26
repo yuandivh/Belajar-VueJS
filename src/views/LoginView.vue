@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from "vue";
-import { apiFetch } from "../services/api";
 import { useRouter } from "vue-router";
+import { apiFetch } from "../services/apiFetch";
+import { login } from "../services/auth";
 
 const router = useRouter();
 const email = ref("");
@@ -11,29 +12,14 @@ const token = ref(localStorage.getItem("token"));
 const loading = ref(false);
 const errorMessage = ref("");
 
-async function login() {
+async function handleLogin() {
   loading.value = true;
   errorMessage.value = "";
   try {
-    const res = await apiFetch("/api/login", {
-      method: "POST",
-      body: JSON.stringify({
-        email: email.value,
-        password: password.value,
-      }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message);
-    }
-    const data = await res.json();
-    localStorage.setItem("token", data.token);
-
+    const data = await login(email.value,password.value)
     email.value = "";
     password.value = "";
-    token.value = localStorage.getItem("token");
-    router.push("/dashboard")
+    router.push({name: "dashboard"})
   } catch (error) {
     errorMessage.value = error.message;
   } finally {
@@ -41,25 +27,7 @@ async function login() {
   }
 }
 
-async function logout() {
-  loading.value = true;
-  try {
-    const res = await apiFetch("/api/logout", {
-      method: "POST",
-    });
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message);
-    }
-    localStorage.removeItem("token");
-    token.value = "";
-    router.push("/login");
-  } catch (error) {
-    errorMessage.value = error.message;
-  } finally {
-    loading.value = false;
-  }
-}
+
 </script>
 
 <template>
@@ -85,7 +53,7 @@ async function logout() {
         <div v-if="errorMessage" class="text-red-500">{{ loginFailed }}</div>
 
         <button
-          @click="login"
+          @click="handleLogin"
           :disabled="loading"
           :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
           class="bg-blue-500 py-2 w-full rounded-md text-white flex items-center justify-center gap-2"
@@ -104,17 +72,8 @@ async function logout() {
             />
           </svg>
         </button>
-        <button
-          @click="logout"
-          class="bg-red-500 py-2 w-full rounded-md text-white"
-          :disabled="loading"
-          :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
-        >
-          Log out
-        </button>
+        
         <br />
-        <p>Token:</p>
-        <p class="wrap-break-word font-semibold">{{ token }}</p>
       </div>
     </div>
   </div>

@@ -1,12 +1,18 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
-import Greeting from "../components/Greeting.vue"
+import Greeting from "../components/Greeting.vue";
 import UserCard from "../components/UserCard.vue";
 import Counter from "../components/Counter.vue";
+import { useRouter } from "vue-router";
+import { apiFetch } from "../services/apiFetch.js";
+import { logout } from "../services/auth.js";
+const router = useRouter();
 const name = ref("");
 const count = ref(0);
 const username = "Yuandi123";
 const BASE_URL = "http://127.0.0.1:8000";
+
+
 
 function tambah() {
   count.value++;
@@ -38,7 +44,7 @@ const projects = ref([
 ]);
 
 const projects2 = ref([]);
-const loading = ref(true)
+const loading = ref(true);
 
 const search = ref("");
 
@@ -74,13 +80,14 @@ const filteredProjects = computed(() => {
 });
 
 onMounted(async () => {
-  const token = "9|2Xecga1y6AYvYWKMM1zQyBlcYzhPKoZibPc3Fxlc954abe3e";
-  loading.value = true
+  const token = localStorage.getItem("token");
+  console.log(token)
+  loading.value = true;
   try {
     const response = await fetch(`${BASE_URL}/api/projects`, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
@@ -95,10 +102,22 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error("Failed to fetch: ", error);
-  } finally{
-    loading.value = false
+  } finally {
+    loading.value = false;
   }
 });
+
+async function handleLogout() {
+  loading.value = true;
+  try {
+    await logout()
+    router.push({name: "login"});
+  } catch (error) {
+    console.log("Log out failed: ",error.message)
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -127,9 +146,20 @@ onMounted(async () => {
     </li>
   </ul>
   <div v-else>Data not found</div>
+  <button
+    @click="handleLogout"
+    class="bg-red-500 py-2 w-full rounded-md text-white"
+    :disabled="loading"
+    :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
+  >
+    Log out
+  </button>
 
   <h1>Tambah/Kurang Project</h1>
   <Counter />
   <Greeting :name="username" />
   <UserCard name="Yuandi Vick Halim" email="yuandivickhalim@gmail.com" />
+  <br />
+  
+  
 </template>

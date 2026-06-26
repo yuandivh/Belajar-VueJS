@@ -21,7 +21,7 @@ export async function apiFetch(endpoints, options = {}) {
 
   if(response.status === 401){
     localStorage.removeItem("token")
-    router.push("/login")
+    router.push({name: "login"});
   }
 
   return response;
