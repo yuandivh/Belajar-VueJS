@@ -5,7 +5,9 @@ import UserCard from "../components/UserCard.vue";
 import Counter from "../components/Counter.vue";
 import { useRouter } from "vue-router";
 import { apiFetch } from "../services/apiFetch.js";
-import { logout } from "../services/auth.js";
+import { useAuthStore } from "../stores/auth.js";
+
+const auth = useAuthStore()
 const router = useRouter();
 const name = ref("");
 const count = ref(0);
@@ -108,19 +110,20 @@ onMounted(async () => {
 });
 
 async function handleLogout() {
-  loading.value = true;
   try {
-    await logout()
+    await auth.logout()
     router.push({name: "login"});
   } catch (error) {
     console.log("Log out failed: ",error.message)
-  } finally {
-    loading.value = false;
   }
 }
 </script>
 
 <template>
+  <div>PINIA</div>
+  <div>{{ auth.user?.name }}</div>
+  <div>{{ auth.user?.email }}</div>
+  <br><br>
   <select v-model="selectedOption">
     <option disabled value="">Please select one</option>
     <option v-for="option in options" :key="option.value" :value="option.value">
@@ -149,8 +152,8 @@ async function handleLogout() {
   <button
     @click="handleLogout"
     class="bg-red-500 py-2 w-full rounded-md text-white"
-    :disabled="loading"
-    :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
+    :disabled="auth.loadingLogout"
+    :class="auth.loadingLogout ? 'opacity-50 cursor-not-allowed' : ''"
   >
     Log out
   </button>

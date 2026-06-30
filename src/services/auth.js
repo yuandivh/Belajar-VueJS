@@ -2,10 +2,10 @@ import { apiFetch } from "./apiFetch";
 
 export async function getUser() {
   const res = await apiFetch("/api/user");
+  const data = await res.json();
   if (!res.ok) {
     throw new Error("Failed to fetch user");
   }
-  const data = await res.json();
   return data;
 }
 
@@ -21,8 +21,6 @@ export async function login(email,password) {
   if (!res.ok) {
     throw new Error(data.message || "Log in failed");
   }
-  localStorage.setItem("token", data.token);
-
   return data;
 }
 
@@ -34,6 +32,5 @@ export async function logout(){
     if (!res.ok) {
       throw new Error(data.message || "Log out failed");
     }
-    localStorage.removeItem("token");
     return data;
 }

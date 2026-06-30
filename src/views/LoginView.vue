@@ -3,27 +3,26 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { apiFetch } from "../services/apiFetch";
 import { login } from "../services/auth";
+import { useAuthStore } from "../stores/auth";
 
+const auth = useAuthStore();
 const router = useRouter();
 const email = ref("");
 const password = ref("");
 const BASE_URL = "http://127.0.0.1:8000";
 const token = ref(localStorage.getItem("token"));
-const loading = ref(false);
 const errorMessage = ref("");
 
 async function handleLogin() {
-  loading.value = true;
   errorMessage.value = "";
   try {
-    const data = await login(email.value,password.value)
+    await auth.login(email.value,password.value)
+    // const data = await login(email.value,password.value)
     email.value = "";
     password.value = "";
     router.push({name: "dashboard"})
   } catch (error) {
     errorMessage.value = error.message;
-  } finally {
-    loading.value = false;
   }
 }
 
@@ -50,12 +49,12 @@ async function handleLogin() {
           v-model="password"
           class="bg-white border-2 border-gray-300 py-1 px-2 w-full rounded-md"
         />
-        <div v-if="errorMessage" class="text-red-500">{{ loginFailed }}</div>
+        <div v-if="errorMessage" class="text-red-500">{{ errorMessage }}</div>
 
         <button
           @click="handleLogin"
-          :disabled="loading"
-          :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
+          :disabled="auth.loadingLogin"
+          :class="auth.loadingLogin ? 'opacity-50 cursor-not-allowed' : ''"
           class="bg-blue-500 py-2 w-full rounded-md text-white flex items-center justify-center gap-2"
         >
           <div class="pb-0.5">Log in</div>

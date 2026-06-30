@@ -1,7 +1,3 @@
-import { useRouter } from "vue-router";
-
-const router = useRouter();
-
 const BASE_URL = "http://127.0.0.1:8000";
 
 export async function apiFetch(endpoints, options = {}) {
@@ -18,11 +14,6 @@ export async function apiFetch(endpoints, options = {}) {
       ...options.headers,
     },
   });
-
-  if(response.status === 401){
-    localStorage.removeItem("token")
-    router.push({name: "login"});
-  }
 
   return response;
 }
