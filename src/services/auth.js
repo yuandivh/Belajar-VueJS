@@ -2,6 +2,7 @@ import { apiFetch } from "./apiFetch";
 
 export async function getUser() {
   const res = await apiFetch("/api/user");
+  // console.log("getUser status: ",res.status)
   const data = await res.json();
   if (!res.ok) {
     throw new Error("Failed to fetch user");
