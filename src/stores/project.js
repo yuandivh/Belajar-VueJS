@@ -1,12 +1,13 @@
 import { defineStore } from "pinia";
-import { getProjects, deleteProject, createProjects } from "../services/project";
+import { getProjects, deleteProject, createProjects, updateProjects } from "../services/project";
 
 export const useProjectStore = defineStore("project",{
     state: ()=>({
         projects:[],
         loading: false,
         loadingDelete:false,
-        loadingCreate:false
+        loadingCreate:false,
+        loadingUpdate:false
     }) ,
     actions:{
         async fetchProjects(){
@@ -33,6 +34,20 @@ export const useProjectStore = defineStore("project",{
                 this.loadingCreate = false;
             }
         },
+        async updateProject(id,name,description){
+            this.loadingUpdate = true
+            try{
+                const data = await updateProjects(id,name,description);
+                const index = this.projects.findIndex(project => project.id === id)
+                if (index !== -1){
+                    this.projects[index] = data.data;
+                }
+            }catch(error){
+                throw error
+            }finally{
+                this.loadingUpdate = false;
+            }
+        },
         async deleteProject(projectId){
             this.loadingDelete = true;
             try{
@@ -44,7 +59,10 @@ export const useProjectStore = defineStore("project",{
                 this.loadingDelete = false;
             }
         }
-
-
+    },
+    getters:{
+        totalProjects: (state)=>state.projects.length,
+        completedProjects: (state)=>state.projects.filter(project =>project.completed).length,
+        pendingProjects: (state)=>state.projects.filter(project =>!project.completed).length,
     }
 });

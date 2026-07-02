@@ -34,6 +34,21 @@ export async function createProjects(name,description){
     return data
 }
 
+export async function updateProjects(id,name,description){
+    const res = await apiFetch(`/api/projects/${id}`,{
+        method: "PUT",
+        body: JSON.stringify({
+            name:name,
+            description:description
+        })
+    })
+    const data = await res.json();
+    if(!res.ok){
+        throw new Error (data.message || "Failed to update project")
+    }
+    return data;
+}
+
 export async function deleteProject(id){
     const res = await apiFetch(`/api/projects/${id}`,{
         method: "DELETE"
