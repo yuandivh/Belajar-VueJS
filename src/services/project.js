@@ -1,13 +1,12 @@
 import { apiFetch } from "./apiFetch";
 
-export async function getProjects(){
-    const res = await apiFetch("/api/projects")
+export async function getProjects(query){
+    const res = await apiFetch(`/api/projects?${query}`)
     const data = await res.json();
     if(!res.ok){
         throw new Error ("Failed to fetch projects")
     }
     return data
-    console.log(data.data)
 }
 
 export async function showProjects(id){

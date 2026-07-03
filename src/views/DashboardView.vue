@@ -7,6 +7,7 @@ import { useRouter } from "vue-router";
 import { apiFetch } from "../services/apiFetch.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useProjectStore } from "../stores/project.js";
+import BaseModal from "../components/BaseModal.vue";
 
 const auth = useAuthStore();
 const projectStore = useProjectStore();
@@ -21,6 +22,8 @@ const descriptionProject = ref(null);
 const editingProjectId = ref(null);
 const editName = ref("");
 const editDescription = ref("");
+const showModal = ref(false);
+const editingProject = ref(null);
 
 const filteredProjects = computed(() => {
   let result = projects.value;
@@ -53,56 +56,100 @@ async function handleLogout() {
   }
 }
 
-function showInputProjectModal() {
-  inputProject.value = true;
-}
-const showEditProjectModal = (project)=>{
-  editingProjectId.value = project.id
-  editName.value = project.name
-  editDescription.value = project.description
-}
-
-async function addProject() {
-  try {
+async function submit() {
+  if (editingProject.value) {
+    await projectStore.updateProject(
+      editingProject.value.id,
+      nameProject.value,
+      descriptionProject.value,
+    );
+  } else {
     await projectStore.createProject(
       nameProject.value,
       descriptionProject.value,
     );
-    inputProject.value = false;
-    nameProject.value = null;
-    descriptionProject.value = null;
-  } catch (error) {
-    console.log("Add project failed: ", error.message);
   }
+  closeModal();
 }
 
-async function submitEditProject(id,name,description){
-  try{
-    await projectStore.updateProject(id,name,description);
-    editingProjectId.value = null;
-    editName.value= null;
-    editDescription.value= null;
-  } catch (error) {
-    console.log("Edit project failed: ", error.message);
-  }
+function openCreate() {
+  editingProject.value = null;
+  showModal.value = true;
 }
+
+function openEdit(project) {
+  editingProject.value = project;
+  nameProject.value = project.name
+  descriptionProject.value = project.description
+  showModal.value = true;
+}
+
+function closeModal() {
+  showModal.value = false;
+  editingProject.value = null;
+  nameProject.value = null;
+  descriptionProject.value = null;
+}
+
+let timer;
+watch(
+  () => projectStore.filters.search,
+  () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      projectStore.filters.page = 1; // Reset page to 1 when search changes
+      projectStore.fetchProjects();
+    }, 500);
+  },
+);
+
+// watch(editingProject, (project) => {
+//   if (project) {
+//     nameProject.value = project.name;
+//     descriptionProject.value = project.description;
+//   }
+// });
 </script>
 
 <template>
   <div class="p-8">
-    <div v-if="projectStore.loading">Loading...</div>
-    <div v-else-if="projectStore.loadingDelete">Deleting...</div>
+    <div class="flex mb-4 justify-between">
+      <button
+        @click="openCreate"
+        class="bg-blue-500 py-2 px-10 rounded-md text-white"
+      >
+        Add Project
+      </button>
+      <br /><br />
+      <button
+        @click="handleLogout"
+        class="bg-red-500 py-2 px-10 rounded-md text-white"
+        :disabled="auth.loadingLogout"
+        :class="auth.loadingLogout ? 'opacity-50 cursor-not-allowed' : ''"
+      >
+        Log out
+      </button>
+    </div>
+    <input
+      v-model="projectStore.filters.search"
+      type="text"
+      placeholder="Search project..."
+      class="border-2 border-gray-400 px-2 py-1 w-full"
+    />
+    <br /><br />
+    <div v-if="projectStore.loading.fetch">Loading...</div>
+    <div v-else-if="projectStore.loading.delete">Deleting...</div>
     <ul v-else-if="projectStore.projects.length">
       <li
         class="flex"
         v-for="project in projectStore.projects"
         :key="project.id"
       >
-        <div v-if="editingProjectId !== project.id">
+        <div>
           <div class="flex">
-          {{ project.name }} - {{ project.description }}
-          <span> -{{ project.completed ? "Done" : "Pending" }} -</span>
-            <div class="cursor-pointer px-2" @click="showEditProjectModal(project)">
+            <div class="font-bold">{{ project.name }}</div>
+            - {{ project.description }}
+            <div class="cursor-pointer px-2" @click="openEdit(project)">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -115,8 +162,8 @@ async function submitEditProject(id,name,description){
               </svg>
             </div>
             -
-            <div class="cursor-pointer px-2" @click="deleteProject(project.id)"
-              ><svg
+            <div class="cursor-pointer px-2" @click="deleteProject(project.id)">
+              <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
@@ -131,95 +178,82 @@ async function submitEditProject(id,name,description){
             </div>
           </div>
         </div>
-        <div v-else>
-          <input type="text" v-model="editName" class="border-2 border-gray-400 px-2 py-1 mr-2" />
-          <input
-            type="text"
-            v-model="editDescription"
-            class="border-2 border-gray-400 px-2 py-1"
-          />
-          <span>- {{ project.completed ? "Done" : "Pending" }} - </span>
-          <button
-            @click="submitEditProject(editingProjectId, editName, editDescription)"
-            class="bg-green-300 hover:bg-green-400 text-gray-800 font-bold py-2 px-4 rounded-md mr-2"
-            :disabled="projectStore.loadingUpdate"
-            :class="projectStore.loadingUpdate ? 'opacity-50 cursor-not-allowed' : ''"
-          >
-            Submit Project
-          </button>
-          <button
-            @click="editProjectModal = false, editingProjectId = null"
-            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md"
-            :disabled="projectStore.loadingUpdate"
-            :class="projectStore.loadingUpdate ? 'opacity-50 cursor-not-allowed' : ''"
-          >
-            Close Modal
-          </button>
-        </div>
       </li>
     </ul>
     <div v-else>No data found</div>
     <br /><br />
-    <div>
-      Total projects: {{ projectStore.totalProjects }}
-    </div>
-    <div>
-      Project completed: {{projectStore.completedProjects }}
-    </div>
-    <div>
-      Project pending: {{ projectStore.pendingProjects }}
-    </div>
+    <div>Total projects: {{ projectStore.totalProjects }}</div>
     <br /><br />
-    <button
-      @click="showInputProjectModal"
-      class="bg-blue-500 py-2 w-full rounded-md text-white"
-    >
-      Add Project
-    </button>
-    <br /><br />
-    <button
-      @click="handleLogout"
-      class="bg-red-500 py-2 w-full rounded-md text-white"
-      :disabled="auth.loadingLogout"
-      :class="auth.loadingLogout ? 'opacity-50 cursor-not-allowed' : ''"
-    >
-      Log out
-    </button>
 
-    <div
-      class="bg-gray-100 p-4 rounded-md mt-4 justify-center items-center"
-      v-if="inputProject"
-    >
-      <div class="flex items-center mb-4">
-        <span class="w-24">Name:</span>
-        <input
-          class="flex-1 px-2 py-1 rounded-md"
-          type="text"
-          v-model="nameProject"
-          placeholder="Enter project name..."
-        />
-      </div>
-      <div class="flex items-center mb-4">
-        <span class="w-24">Description:</span>
-        <input
-          class="flex-1 px-2 py-1 rounded-md"
-          type="text"
-          v-model="descriptionProject"
-          placeholder="Enter project description..."
-        />
-      </div>
+    <div class="flex items-center justify-center">
       <button
-        @click="addProject"
-        class="bg-green-300 hover:bg-green-400 text-gray-800 font-bold py-2 px-4 rounded-md mr-2"
+        class="px-2 py-1 bg-gray-400 text-white rounded-md cursor-pointer"
+        @click="
+          projectStore.changePage(projectStore.pagination.currentPage - 1)
+        "
+        :disabled="projectStore.pagination.currentPage === 1"
+        :class="projectStore.pagination.currentPage === 1 ? 'opacity-50' : ''"
       >
-        Add Project
+        Previous
       </button>
-      <button
-        @click="inputProject = false"
-        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md"
+      <span class="mx-2"
+        >{{ projectStore.pagination.currentPage }} /
+        {{ projectStore.pagination.lastPage }}</span
       >
-        Close Modal
+      <button
+        class="px-5 py-1 bg-gray-400 text-white rounded-md cursor-pointer"
+        @click="
+          projectStore.changePage(projectStore.pagination.currentPage + 1)
+        "
+        :disabled="
+          projectStore.pagination.currentPage ===
+          projectStore.pagination.lastPage
+        "
+        :class="
+          projectStore.pagination.currentPage ===
+          projectStore.pagination.lastPage
+            ? 'opacity-50'
+            : ''
+        "
+      >
+        Next
       </button>
     </div>
+
+    <br /><br />
+
+    <BaseModal :show="showModal">
+      <h2 class="font-bold mb-">
+        {{ editingProject ? "Edit Project" : "Create Project" }}
+      </h2>
+      <input
+        class="flex-1 px-2 py-1 rounded-md w-full border-2 border-gray-300 mb-4"
+        type="text"
+        v-model="nameProject"
+        placeholder="Enter project name..."
+      />
+      <textarea
+        class="flex-1 px-2 py-1 rounded-md w-full border-2 border-gray-300 mb-4"
+        type="text"
+        v-model="descriptionProject"
+        placeholder="Enter project description..."
+      >
+      </textarea>
+
+      <div class="flex">
+        <button
+          @click="submit"
+          class="bg-green-300 hover:bg-green-400 text-gray-800 font-bold py-2 px-4 rounded-md mr-2"
+        >
+          {{ editingProject ? "Submit changes" : "Add Project" }}
+        </button>
+        <button
+          @click="closeModal"
+          class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md"
+        >
+          Close Modal
+        </button>
+      </div>
+    </BaseModal>
   </div>
 </template>
