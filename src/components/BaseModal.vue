@@ -2,7 +2,6 @@
 defineProps({
     show: Boolean,
 })
-
 </script>
 
 <template>

@@ -8,7 +8,9 @@ import { apiFetch } from "../services/apiFetch.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useProjectStore } from "../stores/project.js";
 import BaseModal from "../components/BaseModal.vue";
+import { useToast } from "vue-toastification";
 
+const toast = useToast()
 const auth = useAuthStore();
 const projectStore = useProjectStore();
 const router = useRouter();
@@ -24,6 +26,9 @@ const editName = ref("");
 const editDescription = ref("");
 const showModal = ref(false);
 const editingProject = ref(null);
+const errors = ref("");
+const showDeleteModal = ref(false)
+const deletingProject = ref(null)
 
 const filteredProjects = computed(() => {
   let result = projects.value;
@@ -40,48 +45,84 @@ onMounted(async () => {
 });
 
 async function deleteProject(projectId) {
+  errors.value = "";
   try {
     await projectStore.deleteProject(projectId);
-  } catch (error) {
-    console.log("Delete project failed: ", error.message);
+    closeDeleteModal()
+    toast.success("Project deleted successfully")
+  } catch (err) {
+    console.log(err.status)
+    console.log(err.message)
+    console.log(err.errors)
+    errors.value = err.errors;
+    if(!err.errors){
+      toast.error(err.message)
+    }
   }
 }
 
 async function handleLogout() {
+  errors.value = "";
   try {
     await auth.logout();
     router.push({ name: "login" });
-  } catch (error) {
-    console.log("Log out failed: ", error.message);
+  } catch (err) {
+    console.log("Log out failed: ", err.message);
+    errors.value = err.errors;
+    if(!err.errors){
+      toast.error(err.message)
+    }
   }
 }
 
 async function submit() {
-  if (editingProject.value) {
-    await projectStore.updateProject(
-      editingProject.value.id,
-      nameProject.value,
-      descriptionProject.value,
-    );
-  } else {
-    await projectStore.createProject(
-      nameProject.value,
-      descriptionProject.value,
-    );
+  errors.value = "";
+  try{
+    if (editingProject.value) {
+      await projectStore.updateProject(
+        editingProject.value.id,
+        nameProject.value,
+        descriptionProject.value,
+      );
+      toast.success("Project updated successfully")
+    } else {
+      await projectStore.createProject(
+        nameProject.value,
+        descriptionProject.value,
+      );
+      toast.success("Project created successfully")
+    }
+      closeModal();
+  }catch(err){
+    console.log(err.status)
+    console.log(err.message)
+    console.log(err.errors)
+    errors.value = err.errors
+    if(!err.errors){
+      toast.error(err.message)
+    }
   }
-  closeModal();
 }
 
 function openCreate() {
   editingProject.value = null;
+  nameProject.value = "";
+  descriptionProject.value = "";
   showModal.value = true;
+  errors.value = ""
 }
 
 function openEdit(project) {
   editingProject.value = project;
-  nameProject.value = project.name
-  descriptionProject.value = project.description
+  nameProject.value = project.name;
+  descriptionProject.value = project.description;
   showModal.value = true;
+  errors.value = ""
+}
+
+function openDelete(project){
+  deletingProject.value = project
+  showDeleteModal.value = true
 }
 
 function closeModal() {
@@ -89,6 +130,11 @@ function closeModal() {
   editingProject.value = null;
   nameProject.value = null;
   descriptionProject.value = null;
+}
+
+function closeDeleteModal(){
+  showDeleteModal.value = false;
+  deletingProject.value = null;
 }
 
 let timer;
@@ -162,7 +208,7 @@ watch(
               </svg>
             </div>
             -
-            <div class="cursor-pointer px-2" @click="deleteProject(project.id)">
+            <div class="cursor-pointer px-2" @click="openDelete(project)">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -222,37 +268,80 @@ watch(
 
     <br /><br />
 
+    <!-- Create or Edit Modal -->
     <BaseModal :show="showModal">
-      <h2 class="font-bold mb-">
-        {{ editingProject ? "Edit Project" : "Create Project" }}
-      </h2>
-      <input
-        class="flex-1 px-2 py-1 rounded-md w-full border-2 border-gray-300 mb-4"
-        type="text"
-        v-model="nameProject"
-        placeholder="Enter project name..."
-      />
-      <textarea
-        class="flex-1 px-2 py-1 rounded-md w-full border-2 border-gray-300 mb-4"
-        type="text"
-        v-model="descriptionProject"
-        placeholder="Enter project description..."
-      >
-      </textarea>
+      <div v-if="!projectStore.loading.create && !projectStore.loading.update">
+        <h2 class="font-bold mb-4">
+          {{ editingProject ? "Edit Project" : "Create Project" }}
+        </h2>
+        <input
+          class="flex-1 px-2 py-1 rounded-md w-full border-2 border-gray-300 mb-4"
+          type="text"
+          v-model="nameProject"
+          placeholder="Enter project name..."
+          :class="errors.name ? 'border-red-500':'border-gray-300'"
+        />
+        <div v-if="errors.name" class="text-red-500 mb-2 -mt-2">
+          {{ errors.name[0] }}
+        </div>
+        <textarea
+          class="flex-1 px-2 py-1 rounded-md w-full border-2 border-gray-300 mb-4"
+          type="text"
+          v-model="descriptionProject"
+          placeholder="Enter project description..."
+          :class="errors.description ? 'border-red-500':'border-gray-300'"
+        >
+        </textarea>
+        <div v-if="errors.description" class="text-red-500 mb-2 -mt-2">
+          {{ errors.description[0] }}
+        </div>
+  
+  
+        <div class="flex">
+          <button
+            @click="submit"
+            class="bg-green-300 hover:bg-green-400 text-gray-800 font-bold py-2 px-4 rounded-md mr-2"
+          >
+            {{ editingProject ? "Submit changes" : "Add Project" }}
+          </button>
+          <button
+            @click="closeModal"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md"
+          >
+            Close Modal
+          </button>
+        </div>
+      </div>
+      <div v-else class="flex justify-center items-center">Loading...</div>
+    </BaseModal>
 
-      <div class="flex">
-        <button
-          @click="submit"
-          class="bg-green-300 hover:bg-green-400 text-gray-800 font-bold py-2 px-4 rounded-md mr-2"
-        >
-          {{ editingProject ? "Submit changes" : "Add Project" }}
-        </button>
-        <button
-          @click="closeModal"
-          class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md"
-        >
-          Close Modal
-        </button>
+    <!-- Delete Modal -->
+    <BaseModal :show="showDeleteModal">
+      <div v-if="!projectStore.loading.delete">
+        <h2 class="font-bold mb-2">
+          Delete Project
+        </h2>
+        <p class="mb-4">
+          Are you sure you want to delete
+          <strong>{{ deletingProject?.name }}</strong>
+        </p>
+        <div class="flex">
+          <button
+            @click="deleteProject(deletingProject.id)"
+            class="bg-red-300 hover:bg-red-400 text-gray-800 font-bold py-2 px-4 rounded-md mr-2"
+          >
+            Delete project
+          </button>
+          <button
+            @click="closeDeleteModal"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md"
+          >
+            Close Modal
+          </button>
+        </div>
+      </div>
+      <div v-else class="flex justify-center items-center">
+        Loading...
       </div>
     </BaseModal>
   </div>

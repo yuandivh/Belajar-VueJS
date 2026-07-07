@@ -4,7 +4,11 @@ export async function getProjects(query){
     const res = await apiFetch(`/api/projects?${query}`)
     const data = await res.json();
     if(!res.ok){
-        throw new Error ("Failed to fetch projects")
+        throw ({
+            status: res.status,
+            message: data.message || "Failed to fetch projects",
+            errors: data.errors
+        })
     }
     return data
 }
@@ -13,7 +17,11 @@ export async function showProjects(id){
     const res = await apiFetch(`/api/projects/${id}`)
     const data = await res.json();
     if(!res.ok){
-        throw new Error ("Failed to fetch project")
+        throw ({
+            status: res.status,
+            message: data.message || "Failed to show projects",
+            errors: data.errors
+        })
     }
     return data
 }
@@ -28,7 +36,11 @@ export async function createProjects(name,description){
     })
     const data = await res.json();
     if(!res.ok){
-        throw new Error ("Failed to fetch projects")
+        throw ({
+            status: res.status,
+            message: data.message || "Failed to create projects",
+            errors: data.errors
+        })
     }
     return data
 }
@@ -43,7 +55,11 @@ export async function updateProjects(id,name,description){
     })
     const data = await res.json();
     if(!res.ok){
-        throw new Error (data.message || "Failed to update project")
+        throw ({
+            status: res.status,
+            message: data.message || "Failed to update projects",
+            errors: data.errors
+        })
     }
     return data;
 }
@@ -54,7 +70,11 @@ export async function deleteProject(id){
     })
     const data = await res.json();
     if(!res.ok){
-        throw new Error ("Failed to delete project")
+        throw ({
+            status: res.status,
+            message: data.message || "Failed to delete projects",
+            errors: data.errors
+        })
     }
     return data
 }
