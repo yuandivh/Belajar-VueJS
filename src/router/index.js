@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import LoginView from "../views/LoginView.vue";
 import DashboardView from "../views/DashboardView.vue";
+import TaskView from "../views/TaskView.vue";
 
 const routes = [
   {
@@ -23,6 +24,14 @@ const routes = [
       requiresAuth: true,
     },
   },
+  {
+    path:"/projects/:projectId/tasks",
+    name:"tasks",
+    component: TaskView,
+    meta: {
+      requiresAuth: true,
+    },
+  }
 ];
 
 const router = createRouter({

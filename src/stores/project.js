@@ -62,16 +62,16 @@ export const useProjectStore = defineStore("project", {
         this.loading.create = false;
       }
     },
-    async updateProject(id, name, description) {
+    async updateProject(projectId, name, description) {
       this.loading.update = true;
       try {
-        const data = await updateProjects(id, name, description);
-        const index = this.projects.findIndex((project) => project.id === id);
+        const data = await updateProjects(projectId, name, description);
+        const index = this.projects.findIndex((project) => project.id === projectId);
         if (index !== -1) {
           this.projects[index] = data.data;
         }
         this.filterDefault();
-        await this.fetchProjects();
+        // await this.fetchProjects(); // If not use updated_at
       } catch (error) {
         throw error;
       } finally {

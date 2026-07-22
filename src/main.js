@@ -5,6 +5,7 @@ import router from './router/index.js'
 import { createPinia } from 'pinia'
 import Toast from 'vue-toastification'
 import "vue-toastification/dist/index.css"
+import 'flowbite'
 
 const app = createApp(App)
 

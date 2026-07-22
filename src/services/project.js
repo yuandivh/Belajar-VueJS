@@ -13,8 +13,8 @@ export async function getProjects(query){
     return data
 }
 
-export async function showProjects(id){
-    const res = await apiFetch(`/api/projects/${id}`)
+export async function showProjects(projectId){
+    const res = await apiFetch(`/api/projects/${projectId}`)
     const data = await res.json();
     if(!res.ok){
         throw ({
@@ -45,8 +45,8 @@ export async function createProjects(name,description){
     return data
 }
 
-export async function updateProjects(id,name,description){
-    const res = await apiFetch(`/api/projects/${id}`,{
+export async function updateProjects(projectId,name,description){
+    const res = await apiFetch(`/api/projects/${projectId}`,{
         method: "PUT",
         body: JSON.stringify({
             name:name,
@@ -64,8 +64,8 @@ export async function updateProjects(id,name,description){
     return data;
 }
 
-export async function deleteProject(id){
-    const res = await apiFetch(`/api/projects/${id}`,{
+export async function deleteProject(projectId){
+    const res = await apiFetch(`/api/projects/${projectId}`,{
         method: "DELETE"
     })
     const data = await res.json();

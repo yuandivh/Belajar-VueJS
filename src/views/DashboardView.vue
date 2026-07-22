@@ -3,14 +3,15 @@ import { ref, computed, watch, onMounted } from "vue";
 import Greeting from "../components/Greeting.vue";
 import UserCard from "../components/UserCard.vue";
 import Counter from "../components/Counter.vue";
-import { useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { apiFetch } from "../services/apiFetch.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useProjectStore } from "../stores/project.js";
 import BaseModal from "../components/BaseModal.vue";
 import { useToast } from "vue-toastification";
+import ProjectCard from "../components/ProjectCard.vue";
 
-const toast = useToast()
+const toast = useToast();
 const auth = useAuthStore();
 const projectStore = useProjectStore();
 const router = useRouter();
@@ -27,8 +28,8 @@ const editDescription = ref("");
 const showModal = ref(false);
 const editingProject = ref(null);
 const errors = ref("");
-const showDeleteModal = ref(false)
-const deletingProject = ref(null)
+const showDeleteModal = ref(false);
+const deletingProject = ref(null);
 
 const filteredProjects = computed(() => {
   let result = projects.value;
@@ -48,15 +49,15 @@ async function deleteProject(projectId) {
   errors.value = "";
   try {
     await projectStore.deleteProject(projectId);
-    closeDeleteModal()
-    toast.success("Project deleted successfully")
+    closeDeleteModal();
+    toast.success("Project deleted successfully");
   } catch (err) {
-    console.log(err.status)
-    console.log(err.message)
-    console.log(err.errors)
+    console.log(err.status);
+    console.log(err.message);
+    console.log(err.errors);
     errors.value = err.errors;
-    if(!err.errors){
-      toast.error(err.message)
+    if (!err.errors) {
+      toast.error(err.message);
     }
   }
 }
@@ -69,37 +70,37 @@ async function handleLogout() {
   } catch (err) {
     console.log("Log out failed: ", err.message);
     errors.value = err.errors;
-    if(!err.errors){
-      toast.error(err.message)
+    if (!err.errors) {
+      toast.error(err.message);
     }
   }
 }
 
 async function submit() {
   errors.value = "";
-  try{
+  try {
     if (editingProject.value) {
       await projectStore.updateProject(
         editingProject.value.id,
         nameProject.value,
         descriptionProject.value,
       );
-      toast.success("Project updated successfully")
+      toast.success("Project updated successfully");
     } else {
       await projectStore.createProject(
         nameProject.value,
         descriptionProject.value,
       );
-      toast.success("Project created successfully")
+      toast.success("Project created successfully");
     }
-      closeModal();
-  }catch(err){
-    console.log(err.status)
-    console.log(err.message)
-    console.log(err.errors)
-    errors.value = err.errors
-    if(!err.errors){
-      toast.error(err.message)
+    closeModal();
+  } catch (err) {
+    console.log(err.status);
+    console.log(err.message);
+    console.log(err.errors);
+    errors.value = err.errors;
+    if (!err.errors) {
+      toast.error(err.message);
     }
   }
 }
@@ -109,7 +110,7 @@ function openCreate() {
   nameProject.value = "";
   descriptionProject.value = "";
   showModal.value = true;
-  errors.value = ""
+  errors.value = "";
 }
 
 function openEdit(project) {
@@ -117,12 +118,12 @@ function openEdit(project) {
   nameProject.value = project.name;
   descriptionProject.value = project.description;
   showModal.value = true;
-  errors.value = ""
+  errors.value = "";
 }
 
-function openDelete(project){
-  deletingProject.value = project
-  showDeleteModal.value = true
+function openDelete(project) {
+  deletingProject.value = project;
+  showDeleteModal.value = true;
 }
 
 function closeModal() {
@@ -132,7 +133,7 @@ function closeModal() {
   descriptionProject.value = null;
 }
 
-function closeDeleteModal(){
+function closeDeleteModal() {
   showDeleteModal.value = false;
   deletingProject.value = null;
 }
@@ -159,17 +160,17 @@ watch(
 
 <template>
   <div class="p-8">
+    <!-- Button Add Project and Logout -->
     <div class="flex mb-4 justify-between">
       <button
         @click="openCreate"
-        class="bg-blue-500 py-2 px-10 rounded-md text-white"
+        class="bg-blue-500 py-3 px-10 rounded-md text-white"
       >
         Add Project
       </button>
-      <br /><br />
       <button
         @click="handleLogout"
-        class="bg-red-500 py-2 px-10 rounded-md text-white"
+        class="bg-red-500 py-3 px-10 rounded-md text-white"
         :disabled="auth.loadingLogout"
         :class="auth.loadingLogout ? 'opacity-50 cursor-not-allowed' : ''"
       >
@@ -182,10 +183,12 @@ watch(
       placeholder="Search project..."
       class="border-2 border-gray-400 px-2 py-1 w-full"
     />
+
     <br /><br />
+
     <div v-if="projectStore.loading.fetch">Loading...</div>
     <div v-else-if="projectStore.loading.delete">Deleting...</div>
-    <ul v-else-if="projectStore.projects.length">
+    <!-- <ul v-else-if="projectStore.projects.length">
       <li
         class="flex"
         v-for="project in projectStore.projects"
@@ -225,7 +228,75 @@ watch(
           </div>
         </div>
       </li>
-    </ul>
+    </ul> -->
+    <div
+      v-else-if="projectStore.projects.length"
+      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
+    >
+      <div v-for="project in projectStore.projects" :key="project.id">
+        <RouterLink :to="{
+          name:'tasks',
+          params:{
+            projectId:project.id
+          }
+        }">
+          <div
+            class="bg-yellow-300 hover:bg-yellow-400 px-8 py-8 rounded-xl cursor-pointer min-h-full"
+          >
+            <div class="flex justify-between items-center mb-8">
+              <div
+                class="bg-white rounded-full p-2 inline-flex items-center justify-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  class="size-6"
+                >
+                  <path
+                    d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z"
+                  />
+                </svg>
+              </div>
+              <div class="flex">
+                <div class="cursor-pointer px-2" @click="openEdit(project)">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    class="size-6"
+                  >
+                    <path
+                      d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z"
+                    />
+                  </svg>
+                </div>
+                <div class="cursor-pointer" @click="openDelete(project)">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    class="size-6"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="pl-2">
+              <div class="font-bold text-xl mb-2">{{ project.name }}</div>
+              <div class="text-sm wrap-break-word">
+                {{ project.description }}
+              </div>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+    </div>
     <div v-else>No data found</div>
     <br /><br />
     <div>Total projects: {{ projectStore.totalProjects }}</div>
@@ -279,7 +350,7 @@ watch(
           type="text"
           v-model="nameProject"
           placeholder="Enter project name..."
-          :class="errors.name ? 'border-red-500':'border-gray-300'"
+          :class="errors.name ? 'border-red-500' : 'border-gray-300'"
         />
         <div v-if="errors.name" class="text-red-500 mb-2 -mt-2">
           {{ errors.name[0] }}
@@ -289,14 +360,13 @@ watch(
           type="text"
           v-model="descriptionProject"
           placeholder="Enter project description..."
-          :class="errors.description ? 'border-red-500':'border-gray-300'"
+          :class="errors.description ? 'border-red-500' : 'border-gray-300'"
         >
         </textarea>
         <div v-if="errors.description" class="text-red-500 mb-2 -mt-2">
           {{ errors.description[0] }}
         </div>
-  
-  
+
         <div class="flex">
           <button
             @click="submit"
@@ -318,9 +388,7 @@ watch(
     <!-- Delete Modal -->
     <BaseModal :show="showDeleteModal">
       <div v-if="!projectStore.loading.delete">
-        <h2 class="font-bold mb-2">
-          Delete Project
-        </h2>
+        <h2 class="font-bold mb-2">Delete Project</h2>
         <p class="mb-4">
           Are you sure you want to delete
           <strong>{{ deletingProject?.name }}</strong>
@@ -340,9 +408,7 @@ watch(
           </button>
         </div>
       </div>
-      <div v-else class="flex justify-center items-center">
-        Loading...
-      </div>
+      <div v-else class="flex justify-center items-center">Loading...</div>
     </BaseModal>
   </div>
 </template>
