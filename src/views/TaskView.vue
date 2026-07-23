@@ -3,6 +3,10 @@ import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "../stores/task";
 import BaseModal from "../components/BaseModal.vue";
+import { initFlowbite } from "flowbite";
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import { useToast } from "vue-toastification";
+
 const route = useRoute();
 const router = useRouter();
 const taskStore = useTaskStore();
@@ -11,23 +15,43 @@ const editingTask = ref(null);
 const showModal = ref(false);
 const titleTask = ref(null);
 const descriptionTask = ref(null);
-const statusTask = ref(null);
 const dueDateTask = ref(null);
+const statusTask = ref(null);
 const errors = ref("");
+const toast = useToast();
+const statusOptions = [
+  {
+    label: "Pending",
+    value: "pending",
+  },
+  {
+    label: "In Progress",
+    value: "in_progress",
+  },
+  {
+    label: "Completed",
+    value: "completed",
+  },
+];
+
 const goBack = () => {
   router.back();
 };
 
 onMounted(async () => {
   await taskStore.fetchTasks(projectId);
+  initFlowbite();
 });
 
+function closeModal() {
+  showModal.value = false;
+}
 function openCreate() {
   editingTask.value = null;
   showModal.value = true;
   titleTask.value = null;
   descriptionTask.value = null;
-  statusTask.value = null;
+  statusTask.value = statusOptions[0].value;
   dueDateTask.value = null;
 }
 function openEdit(task) {
@@ -37,6 +61,37 @@ function openEdit(task) {
   descriptionTask.value = task.description;
   statusTask.value = task.status;
   dueDateTask.value = task.due_date;
+}
+
+async function submit() {
+  errors.value = "";
+  try {
+    if (editingTask.value) {
+      await taskStore.updateTask(
+        editingTask.value.id,
+        titleTask.value,
+        descriptionTask.value,
+        statusTask.value,
+        dueDateTask.value,
+      );
+      toast.success("Task updated successfully");
+    } else {
+      await taskStore.createTask(
+        projectId,
+        titleTask.value,
+        descriptionTask.value,
+        statusTask.value,
+        dueDateTask.value,
+      );
+      toast.success("Task created successfully");
+    }
+    closeModal()
+  } catch (err) {
+    errors.value = err.errors;
+    if (!errors.value) {
+      toast.error(err.message);
+    }
+  }
 }
 </script>
 
@@ -99,7 +154,7 @@ function openEdit(task) {
             <td class="px-6 py-3">{{ task.due_date }}</td>
             <td>
               <div
-                class="px-1 py-2 rounded-md"
+                class="px-1 py-2 rounded-md font-semibold text-white"
                 :class="
                   task.status?.toLowerCase() === 'completed'
                     ? 'bg-green-400'
@@ -115,7 +170,8 @@ function openEdit(task) {
                     ? "Completed"
                     : task.status?.toLowerCase() === "pending"
                       ? "Pending"
-                      : "Not Found"
+                      : task.status?.toLowerCase() === "in_progress"
+                      ? "In Progress" : "Not Found"
                 }}
               </div>
             </td>
@@ -156,11 +212,30 @@ function openEdit(task) {
         </tbody>
       </table>
     </div>
+
+    <!-- Create / Update modal -->
     <BaseModal :show="showModal">
       <div>
-        <h2 class="font-bold text-xl mb-4">
-          {{ editingTask ? "Edit Task" : "Create Task" }}
-        </h2>
+        <div class="flex justify-between">
+          <h2 class="font-bold text-xl mb-4">
+            {{ editingTask ? "Edit Task" : "Create Task" }}
+          </h2>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6 cursor-pointer"
+            @click="closeModal"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18 18 6M6 6l12 12"
+            />
+          </svg>
+        </div>
         <input
           type="text"
           placeholder="Title"
@@ -168,21 +243,65 @@ function openEdit(task) {
           v-model="titleTask"
           :class="errors.title ? 'border-red-300' : ''"
         />
+        <div v-if="errors.title" class="text-red-500 mb-2 -mt-2">
+          {{ errors.title[0] }}
+        </div>
         <textarea
           type="textarea"
           placeholder="Description"
           class="flex px-2 py-1 w-full border-2 border-gray-300 mb-4 rounded-md"
           v-model="descriptionTask"
           :class="errors.description ? 'border-red-300' : ''"
-        />
-        <input
-          datepicker
-          id="default-datepicker"
-          type="text"
-          class="block w-full ps-9 pe-3 py-2.5 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body"
+        >
+        </textarea>
+        <div v-if="errors.description" class="text-red-500 mb-2 -mt-2">
+          {{ errors.description[0] }}
+        </div>
+        <VueDatePicker
+          v-model="dueDateTask"
           placeholder="Select date"
-        />
+          :enable-time-picker="false"
+          model-type="yyyy-MM-dd"
+          class="w-full mb-4 rounded-md border-gray-300 border"
+          :class="errors.due_date ? 'border-red-300':''" 
+        >
+        </VueDatePicker>
+        <div v-if="errors.due_date" class="text-red-500 mb-2 -mt-2">
+          {{ errors.due_date[0] }}
+        </div>
+        <select
+          v-model="statusTask"
+          class="w-full border-2 border-gray-300 px-2 py-1 rounded-md mb-4"
+          :class="errors.status ? 'border-red-300':''"
+        >
+          <option
+            v-for="option in statusOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+        <div v-if="errors.status" class="text-red-500 mb-2 -mt-2">
+          {{ errors.status[0] }}
+        </div>
+        <div class="flex justify-end">
+          <button
+            class="flex items-center px-6 py-2  text-white rounded-md cursor-pointer"
+            @click="submit"
+            :disabled="taskStore.loading.create || taskStore.loading.update"
+            :class="editingTask ? 'bg-yellow-500 hover:bg-yellow-600': 'bg-blue-500 hover:bg-blue-600'"
+
+          >
+            <svg v-if="taskStore.loading.create || taskStore.loading.update" 
+            class="mr-2 size-5 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500" viewBox="0 0 24 24"
+            :class="taskStore.loading.create ? 'border-t-blue-500':'border-t-yellow-500'"
+            >
+            </svg>
+            {{ editingTask ? "Update" : "Create" }}
+          </button>
+        </div>
       </div>
-    </BaseModal>
+    </BaseModal>  
   </div>
 </template>

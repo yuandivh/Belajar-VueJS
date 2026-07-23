@@ -42,7 +42,7 @@ export const useTaskStore = defineStore("task",{
             this.loading.create = true
             try{
                 const data = await createTask(projectId,title,description,status,due_date)
-                await this.fetchTasks()
+                await this.fetchTasks(projectId)
             }catch(error){  
                 throw error
             }finally{
@@ -62,14 +62,14 @@ export const useTaskStore = defineStore("task",{
                 throw error
             }
             finally{
-                this.loading.update = true
+                this.loading.update = false
             }
         },
-        async deleteTask(taskId){
+        async deleteTask(projectId,taskId){
             this.loading.delete = true
             try{
                 const data = await deleteTask(taskId)
-                await this.fetchTasks() //Refresh the task list after deletion
+                await this.fetchTasks(projectId) //Refresh the task list after deletion
             }catch(error){
                 throw error
             }
