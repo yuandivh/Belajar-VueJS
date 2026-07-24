@@ -93,6 +93,10 @@ export const useProjectStore = defineStore("project", {
     async changePage(page) {
       this.filters.page = page;
       await this.fetchProjects();
+      window.scrollTo({
+        top:0,
+        behavior:"smooth"
+      })
     },
     filterDefault() {
       this.filters.page = 1;

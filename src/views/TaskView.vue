@@ -6,6 +6,7 @@ import BaseModal from "../components/BaseModal.vue";
 import { initFlowbite } from "flowbite";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { useToast } from "vue-toastification";
+import Swal from "sweetalert2";
 
 const route = useRoute();
 const router = useRouter();
@@ -63,6 +64,59 @@ function openEdit(task) {
   dueDateTask.value = task.due_date;
 }
 
+async function openDelete(taskId) {
+  errors.value = "";
+
+  const result = await Swal.fire({
+    title: "Do you want to delete?",
+    showCancelButton: true,
+    confirmButtonText: "Delete",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#D30000",
+  });
+  if (!result.isConfirmed) return;
+
+  try {
+    await taskStore.deleteTask(projectId, taskId);
+    Swal.fire("Deleted successfully", "", "success");
+  } catch (err) {
+    errors.value = err.message;
+    console.log("Task delete error: ", err);
+    Swal.fire(`${errors.value}`, "", "error");
+  }
+}
+
+async function updateStatus(task) {
+  errors.value = "";
+  const result = await Swal.fire({
+    title: "Update status?",
+    showCancelButton: true,
+    showConfirmButton: true,
+    confirmButtonText: "Update",
+    cancelButtonText: "Cancel",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    let statusUpdate = "";
+    if (task.status === "pending") {
+      statusUpdate = "in_progress";
+    } else if (task.status === "in_progress") {
+      statusUpdate = "completed";
+    }
+    await taskStore.updateTask(
+      task.id,
+      task.title,
+      task.description,
+      statusUpdate,
+      task.due_date,
+    );
+  } catch (err) {
+    console.log("Update Status error", err);
+  }
+}
+
 async function submit() {
   errors.value = "";
   try {
@@ -85,7 +139,7 @@ async function submit() {
       );
       toast.success("Task created successfully");
     }
-    closeModal()
+    closeModal();
   } catch (err) {
     errors.value = err.errors;
     if (!errors.value) {
@@ -120,102 +174,132 @@ async function submit() {
     </div>
 
     <!-- Table -->
-    <div class="overflow-auto rounded-2xl border border-gray-300 shadow-md">
-      <table class="w-full text-md text-center table-auto">
-        <thead class="text-body bg-neutral-100 border-b border-gray-300">
-          <tr>
-            <th class="px-6 py-3 font-medium">Title</th>
-            <th class="px-6 py-3 font-medium">Description</th>
-            <th class="px-6 py-3 font-medium">Due Date</th>
-            <th class="px-6 py-3 font-medium">Status</th>
-            <th class="px-6 py-3 font-medium">Action</th>
-          </tr>
-        </thead>
-        <tbody v-if="taskStore.loading.fetch">
-          <tr v-for="i in 5" :key="i">
-            <td colspan="5" class="px-6 py-3 border-b border-gray-300">
-              <div class="animate-pulse h-6 w-full rounded bg-gray-200"></div>
-            </td>
-          </tr>
-        </tbody>
-        <tbody v-else-if="!taskStore.tasks.length">
-          <tr>
-            <td colspan="5" class="text-center py-8">No Data Found</td>
-          </tr>
-        </tbody>
-        <tbody v-else>
-          <tr
-            v-for="task in taskStore.tasks"
-            :key="task.id"
-            class="border-b border-gray-400"
+    <div class="overflow-hidden rounded-2xl border border-gray-300 shadow-md">
+      <div class="max-h-130 overflow-y-auto">
+        <table class="w-full text-md text-center table-fixed">
+          <thead
+            class="sticky top-0 text-body bg-neutral-100 border-b border-gray-300"
           >
-            <td class="px-6 py-3">{{ task.title }}</td>
-            <td class="px-6 py-3">{{ task.description }}</td>
-            <td class="px-6 py-3">{{ task.due_date }}</td>
-            <td>
-              <div
-                class="px-1 py-2 rounded-md font-semibold text-white"
-                :class="
-                  task.status?.toLowerCase() === 'completed'
-                    ? 'bg-green-400'
-                    : task.status?.toLowerCase() === 'pending'
-                      ? 'bg-yellow-400'
-                      : task.status?.toLowerCase() === 'in_progress'
-                        ? 'bg-blue-400'
-                        : 'bg-red-400'
-                "
-              >
-                {{
-                  task.status?.toLowerCase() === "completed"
-                    ? "Completed"
-                    : task.status?.toLowerCase() === "pending"
-                      ? "Pending"
-                      : task.status?.toLowerCase() === "in_progress"
-                      ? "In Progress" : "Not Found"
-                }}
-              </div>
-            </td>
-            <td class="px-6 py-3">
-              <div class="flex justify-evenly">
+            <tr>
+              <th class="w-1/5 px-6 py-3 font-medium">Title</th>
+              <th class="w-2/5 px-6 py-3 font-medium">Description</th>
+              <th class="w-1/6 px-6 py-3 font-medium">Due Date</th>
+              <th class="w-1/10 px-6 py-3 font-medium">Status</th>
+              <th class="w-1/7 px-6 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody v-if="taskStore.loading.fetch">
+            <tr v-for="i in 5" :key="i">
+              <td colspan="5" class="px-6 py-3 border-b border-gray-300">
+                <div class="animate-pulse h-6 w-full rounded bg-gray-200"></div>
+              </td>
+            </tr>
+          </tbody>
+          <tbody v-else-if="!taskStore.tasks.length">
+            <tr>
+              <td colspan="5" class="text-center py-8">No Data Found</td>
+            </tr>
+          </tbody>
+          <tbody v-else>
+            <tr
+              v-for="task in taskStore.tasks"
+              :key="task.id"
+              class="border-b border-gray-400"
+            >
+              <td class="px-6 py-3">{{ task.title }}</td>
+              <td class="px-6 py-3">{{ task.description }}</td>
+              <td class="px-6 py-3">{{ task.due_date }}</td>
+              <td>
                 <div
-                  class="p-2 bg-orange-400 rounded-lg cursor-pointer"
-                  @click="openEdit(task)"
+                  class="px-1 py-2 rounded-md font-semibold text-white"
+                  :class="
+                    task.status?.toLowerCase() === 'completed'
+                      ? 'bg-green-400'
+                      : task.status?.toLowerCase() === 'pending'
+                        ? 'bg-yellow-400'
+                        : task.status?.toLowerCase() === 'in_progress'
+                          ? 'bg-blue-400'
+                          : 'bg-red-400'
+                  "
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    class="size-6"
-                  >
-                    <path
-                      d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z"
-                    />
-                  </svg>
+                  {{
+                    task.status?.toLowerCase() === "completed"
+                      ? "Completed"
+                      : task.status?.toLowerCase() === "pending"
+                        ? "Pending"
+                        : task.status?.toLowerCase() === "in_progress"
+                          ? "In Progress"
+                          : "Not Found"
+                  }}
                 </div>
-                <div class="p-2 bg-red-400 rounded-lg cursor-pointer">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    class="size-6"
+              </td>
+              <td class="px-6 py-3">
+                <div class="flex justify-evenly">
+                  <!-- Update Status -->
+                  <button
+                    :class="task.status==='completed' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+                    :disabled="task.status === 'completed'"
+                    class="p-2 bg-blue-400 rounded-lg"
+                    @click="updateStatus(task)"
                   >
-                    <path
-                      fill-rule="evenodd"
-                      d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      class="size-6"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M11.47 2.47a.75.75 0 0 1 1.06 0l7.5 7.5a.75.75 0 1 1-1.06 1.06l-6.22-6.22V21a.75.75 0 0 1-1.5 0V4.81l-6.22 6.22a.75.75 0 1 1-1.06-1.06l7.5-7.5Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                  <!-- Edit button -->
+                  <button
+                    class="p-2 bg-orange-400 rounded-lg cursor-pointer"
+                    @click="openEdit(task)"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      class="size-6"
+                    >
+                      <path
+                        d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z"
+                      />
+                    </svg>
+                  </button>
+                  <!-- Delete button -->
+                  <button
+                    class="p-2 bg-red-400 rounded-lg cursor-pointer"
+                    @click="openDelete(task.id)"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      class="size-6"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
                 </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Create / Update modal -->
     <BaseModal :show="showModal">
-      <div>
+      <div class="">
         <div class="flex justify-between">
           <h2 class="font-bold text-xl mb-4">
             {{ editingTask ? "Edit Task" : "Create Task" }}
@@ -263,7 +347,7 @@ async function submit() {
           :enable-time-picker="false"
           model-type="yyyy-MM-dd"
           class="w-full mb-4 rounded-md border-gray-300 border"
-          :class="errors.due_date ? 'border-red-300':''" 
+          :class="errors.due_date ? 'border-red-300' : ''"
         >
         </VueDatePicker>
         <div v-if="errors.due_date" class="text-red-500 mb-2 -mt-2">
@@ -272,7 +356,7 @@ async function submit() {
         <select
           v-model="statusTask"
           class="w-full border-2 border-gray-300 px-2 py-1 rounded-md mb-4"
-          :class="errors.status ? 'border-red-300':''"
+          :class="errors.status ? 'border-red-300' : ''"
         >
           <option
             v-for="option in statusOptions"
@@ -287,21 +371,29 @@ async function submit() {
         </div>
         <div class="flex justify-end">
           <button
-            class="flex items-center px-6 py-2  text-white rounded-md cursor-pointer"
+            class="flex items-center px-6 py-2 text-white rounded-md cursor-pointer"
             @click="submit"
             :disabled="taskStore.loading.create || taskStore.loading.update"
-            :class="editingTask ? 'bg-yellow-500 hover:bg-yellow-600': 'bg-blue-500 hover:bg-blue-600'"
-
+            :class="
+              editingTask
+                ? 'bg-yellow-500 hover:bg-yellow-600'
+                : 'bg-blue-500 hover:bg-blue-600'
+            "
           >
-            <svg v-if="taskStore.loading.create || taskStore.loading.update" 
-            class="mr-2 size-5 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500" viewBox="0 0 24 24"
-            :class="taskStore.loading.create ? 'border-t-blue-500':'border-t-yellow-500'"
-            >
-            </svg>
+            <svg
+              v-if="taskStore.loading.create || taskStore.loading.update"
+              class="mr-2 size-5 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"
+              viewBox="0 0 24 24"
+              :class="
+                taskStore.loading.create
+                  ? 'border-t-blue-500'
+                  : 'border-t-yellow-500'
+              "
+            ></svg>
             {{ editingTask ? "Update" : "Create" }}
           </button>
         </div>
       </div>
-    </BaseModal>  
+    </BaseModal>
   </div>
 </template>

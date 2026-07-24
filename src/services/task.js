@@ -6,7 +6,7 @@ export async function getTasks(projectId,query){
     if(!res.ok){
         throw({
             status:res.status,
-            messages:data.messages || "Failed to fetch tasks",
+            message:data.message || "Failed to fetch tasks",
             errors:data.errors
         })
     }
@@ -19,7 +19,7 @@ export async function showTask(taskId){
     if(!res.ok){
         throw({
             status:res.status,
-            messages:data.messages || "Failed to fetch tasks",
+            message:data.message || "Failed to fetch tasks",
             errors:data.errors
         })
     }
@@ -40,7 +40,7 @@ export async function createTask(projectId,title,description,status,due_date){
     if(!res.ok){
         throw({
             status: res.status,
-            messages: data.messages || "Failed to create task",
+            message: data.message || "Failed to create task",
             errors: data.errors
         })
     }
@@ -61,7 +61,7 @@ export async function updateTask(taskId,title,description,status,due_date){
     if(!res.ok){
         throw({
             status: res.status,
-            messages: data.messages || "Failed to create task",
+            message: data.message || "Failed to create task",
             errors: data.errors
         })
     }
@@ -76,7 +76,7 @@ export async function deleteTask(taskId){
     if(!res.ok){
         throw({
             status: res.status,
-            messages: data.messages || "Failed to delete task",
+            message: data.message || "Failed to delete task",
             errors: data.errors
         })
     }
