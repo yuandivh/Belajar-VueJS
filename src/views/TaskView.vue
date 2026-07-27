@@ -1,9 +1,8 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTaskStore } from "../stores/task";
 import BaseModal from "../components/BaseModal.vue";
-import { initFlowbite } from "flowbite";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import { useToast } from "vue-toastification";
 import Swal from "sweetalert2";
@@ -20,6 +19,7 @@ const dueDateTask = ref(null);
 const statusTask = ref(null);
 const errors = ref("");
 const toast = useToast();
+let timer;
 const statusOptions = [
   {
     label: "Pending",
@@ -41,8 +41,18 @@ const goBack = () => {
 
 onMounted(async () => {
   await taskStore.fetchTasks(projectId);
-  initFlowbite();
 });
+
+watch(
+  () => taskStore.filters.search,
+  () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      taskStore.filters.page = 1;
+      taskStore.fetchTasks(projectId);
+    }, 500);
+  },
+);
 
 function closeModal() {
   showModal.value = false;
@@ -147,6 +157,17 @@ async function submit() {
     }
   }
 }
+
+async function handleScroll(e) {
+  const el = e.target;
+  if (
+    el.scrollTop + el.clientHeight >= el.scrollHeight - 20 &&
+    !taskStore.loading.fetch &&
+    taskStore.pagination.currentPage < taskStore.pagination.lastPage
+  ) {
+    await taskStore.loadMoreTasks(projectId);
+  }
+}
 </script>
 
 <template>
@@ -173,9 +194,19 @@ async function submit() {
       </button>
     </div>
 
+    <!-- Search bar -->
+    <div class="mb-4">
+      <input
+        type="text"
+        class="border-2 border-gray-400 w-full px-2 py-1"
+        placeholder="Search"
+        v-model="taskStore.filters.search"
+      />
+    </div>
+
     <!-- Table -->
     <div class="overflow-hidden rounded-2xl border border-gray-300 shadow-md">
-      <div class="max-h-130 overflow-y-auto">
+      <div class="max-h-100 overflow-y-auto" @scroll="handleScroll">
         <table class="w-full text-md text-center table-fixed">
           <thead
             class="sticky top-0 text-body bg-neutral-100 border-b border-gray-300"
@@ -185,7 +216,7 @@ async function submit() {
               <th class="w-2/5 px-6 py-3 font-medium">Description</th>
               <th class="w-1/6 px-6 py-3 font-medium">Due Date</th>
               <th class="w-1/10 px-6 py-3 font-medium">Status</th>
-              <th class="w-1/7 px-6 py-3 font-medium">Action</th>
+              <th class="w-1/6 px-6 py-3 font-medium">Action</th>
             </tr>
           </thead>
           <tbody v-if="taskStore.loading.fetch">
@@ -233,11 +264,16 @@ async function submit() {
                   }}
                 </div>
               </td>
-              <td class="px-6 py-3">
-                <div class="flex justify-evenly">
+              <td class="px-6 py-3 overflow-hidden">
+                <div class="flex items-center justify-evenly">
                   <!-- Update Status -->
                   <button
-                    :class="task.status==='completed' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+                    v-if="task.status !== 'completed'"
+                    :class="
+                      task.status === 'completed'
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    "
                     :disabled="task.status === 'completed'"
                     class="p-2 bg-blue-400 rounded-lg"
                     @click="updateStatus(task)"
@@ -289,6 +325,16 @@ async function submit() {
                       />
                     </svg>
                   </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="taskStore.loading.loadMore">
+              <td colspan="5" class="py-4">
+                <div class="flex justify-center">
+                  <svg
+                    class="mr-2 size-7 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"
+                    viewBox="0 0 24 24"
+                  ></svg>
                 </div>
               </td>
             </tr>
@@ -371,14 +417,18 @@ async function submit() {
         </div>
         <div class="flex justify-end">
           <button
-            class="flex items-center px-6 py-2 text-white rounded-md cursor-pointer"
+            class="flex items-center px-6 py-2 text-white rounded-md"
             @click="submit"
             :disabled="taskStore.loading.create || taskStore.loading.update"
-            :class="
-              editingTask
-                ? 'bg-yellow-500 hover:bg-yellow-600'
-                : 'bg-blue-500 hover:bg-blue-600'
-            "
+            :class="{
+              'opacity-50 cursor-not-allowed':
+                taskStore.loading.create || taskStore.loading.update,
+              'cursor-pointer': !(
+                taskStore.loading.create || taskStore.loading.update
+              ),
+              'bg-yellow-500 hover:bg-yellow-600': editingTask,
+              'bg-blue-500 hover:bg-blue-600': !editingTask,
+            }"
           >
             <svg
               v-if="taskStore.loading.create || taskStore.loading.update"
