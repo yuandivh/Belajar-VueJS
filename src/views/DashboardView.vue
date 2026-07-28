@@ -10,6 +10,8 @@ import { useProjectStore } from "../stores/project.js";
 import BaseModal from "../components/BaseModal.vue";
 import { useToast } from "vue-toastification";
 import ProjectCard from "../components/ProjectCard.vue";
+import ProjectSearch from "../components/projects/ProjectSearch.vue";
+import ProjectList from "../components/projects/ProjectList.vue";
 
 const toast = useToast();
 const auth = useAuthStore();
@@ -177,130 +179,15 @@ watch(
         Log out
       </button>
     </div>
-    <input
-      v-model="projectStore.filters.search"
-      type="text"
-      placeholder="Search project..."
-      class="border-2 border-gray-400 px-2 py-1 w-full"
-    />
-
+    <ProjectSearch> </ProjectSearch>
     <br /><br />
-
-    <div
-      v-if="projectStore.loading.fetch"
-      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
-    >
-      <div v-for="i in 15" :key="i">
-        <div
-          class="bg-gray-200 px-8 py-9 h-80 rounded-xl cursor-pointer min-h-full animate-pulse"
-        >
-          <div class="flex justify-between items-center mb-8">
-            <div
-              class="bg-gray-300 rounded-full p-5 flex items-center justify-center"
-            >
-            </div>
-            <div class="flex">
-              <div class="px-2 " >
-                <div class="bg-gray-300 p-4 rounded-md">
-                </div>
-              </div>
-              <div class="px-2" >
-                <div class="bg-gray-300 p-4 rounded-md">
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="pl-2">
-            <div class="bg-gray-300 flex-1 space-y-6 py-1 rounded-md"></div>
-            <br>
-            <div class="bg-gray-300 flex-1 space-y-6 py-1 rounded-md"></div>
-            <br>
-            <div class="bg-gray-300 flex-1 space-y-6 py-1 rounded-md"></div>
-            <br>
-            <div class="bg-gray-300 flex-1 space-y-6 py-1 rounded-md"></div>
-            <br>
-            <div class="bg-gray-300 flex-1 space-y-6 py-1 rounded-md"></div>
-            <br>
-            <div class="bg-gray-300 flex-1 space-y-6 py-1 rounded-md"></div>
-            <br>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div
-      v-else-if="projectStore.projects.length"
-      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
-    >
-      <div v-for="project in projectStore.projects" :key="project.id">
-        <div
-          class="bg-yellow-300 hover:bg-yellow-400 px-8 py-8 rounded-xl cursor-pointer min-h-full"
-        >
-          <div class="flex justify-between items-center mb-8">
-            <div
-              class="bg-white rounded-full p-2 inline-flex items-center justify-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="size-6"
-              >
-                <path
-                  d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z"
-                />
-              </svg>
-            </div>
-            <div class="flex">
-              <div class="cursor-pointer px-2" @click="openEdit(project)">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  class="size-6"
-                >
-                  <path
-                    d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z"
-                  />
-                </svg>
-              </div>
-              <div class="cursor-pointer" @click="openDelete(project)">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  class="size-6"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <RouterLink
-            :to="{
-              name: 'tasks',
-              params: {
-                projectId: project.id,
-              },
-            }"
-          >
-            <div class="pl-2">
-              <div class="font-bold text-xl mb-2">{{ project.name }}</div>
-              <div class="text-sm wrap-break-word">
-                {{ project.description }}
-              </div>
-            </div>
-          </RouterLink>
-        </div>
-      </div>
-    </div>
-    <div v-else-if="projectStore.loading.delete">Deleting...</div>
-    <div v-else>No data found</div>
-    <br /><br />
-    <div>Total projects: {{ projectStore.totalProjects }}</div>
+    <ProjectList 
+    :projects="projectStore.projects"
+    :loadingFetch="projectStore.loading.fetch"
+    :loadingDelete="projectStore.loading.delete"
+    :totalProjects="projectStore.totalProjects"
+    @edit="openEdit" 
+    @delete="openDelete"></ProjectList>
     <br /><br />
 
     <div class="flex items-center justify-center">
