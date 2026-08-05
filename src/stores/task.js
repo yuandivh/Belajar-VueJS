@@ -25,6 +25,7 @@ export const useTaskStore = defineStore("task", {
   }),
   actions: {
     async fetchTasks(projectId, append = false) {
+      this.tasks = [];
       if (!append) {
         this.loading.fetch = true;
       } else {

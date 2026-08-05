@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { getUser, login, logout } from "../services/auth";
+import { getUser, login, logout, refreshToken } from "../services/auth";
 import router from "../router";
 
 export const useAuthStore = defineStore("auth", {
@@ -8,6 +8,7 @@ export const useAuthStore = defineStore("auth", {
     token: localStorage.getItem("token"),
     loadingLogin: false,
     loadingLogout: false,
+    loadingRefresh: false,
   }),
   actions: {
     clearAuth() {
@@ -19,8 +20,6 @@ export const useAuthStore = defineStore("auth", {
       try {
         this.user = await getUser();
       } catch (error) {
-        this.clearAuth();
-        router.push({ name: "login" });
         throw error;
       }
     },
@@ -28,8 +27,9 @@ export const useAuthStore = defineStore("auth", {
       this.loadingLogin = true;
       try {
         const data = await login(email, password);
-        this.token = data.token
+        this.token = data.token;
         localStorage.setItem("token", data.token);
+        console.log("Token stored:", data.token);
         await this.fetchUser();
       } finally {
         this.loadingLogin = false;
@@ -42,6 +42,20 @@ export const useAuthStore = defineStore("auth", {
         this.clearAuth();
       } finally {
         this.loadingLogout = false;
+      }
+    },
+    async refreshToken() {
+      this.loadingRefresh = true;
+      try {
+        const data = await refreshToken(localStorage.getItem("token"));
+        this.token = data.token;
+        localStorage.setItem("token", data.token);
+      }
+      catch(error){
+        this.clearAuth();
+        throw error;
+      }finally{
+        this.loadingRefresh = false;
       }
     },
   },

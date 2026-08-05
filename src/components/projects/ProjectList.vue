@@ -4,7 +4,6 @@ import ProjectItem from "./ProjectItem.vue";
 const props = defineProps({
   projects: Array,
   loadingFetch: Boolean,
-  loadingDelete: Boolean,
   totalProjects: Number,
 });
 
@@ -60,7 +59,6 @@ const emit = defineEmits(["edit", "delete"]);
       @delete="emit('delete', $event)"
     ></ProjectItem>
   </div>
-  <div v-else-if="props.loadingDelete">Deleting...</div>
   <div v-else>No data found</div>
   <br /><br />
   <div>Total projects: {{ props.totalProjects }}</div>

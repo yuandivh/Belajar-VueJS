@@ -184,7 +184,6 @@ watch(
     <ProjectList 
     :projects="projectStore.projects"
     :loadingFetch="projectStore.loading.fetch"
-    :loadingDelete="projectStore.loading.delete"
     :totalProjects="projectStore.totalProjects"
     @edit="openEdit" 
     @delete="openDelete"></ProjectList>

@@ -1,8 +1,10 @@
-const BASE_URL = "http://127.0.0.1:8000";
+import { useAuthStore } from "../stores/auth";
+import router from "../router";
 
-export async function apiFetch(endpoints, options = {}) {
-  const token = localStorage.getItem("token");
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+let refreshPromise = null;
 
+async function sendRequest(endpoints, options = {}, token = null) {
   const response = await fetch(`${BASE_URL}${endpoints}`, {
     ...options,
     headers: {
@@ -14,6 +16,31 @@ export async function apiFetch(endpoints, options = {}) {
       ...options.headers,
     },
   });
+  return response;
+}
 
+export async function apiFetch(endpoints, options = {}) {
+  const auth = useAuthStore();
+  let token = auth.token;
+  let response = await sendRequest(endpoints, options, token);
+
+  if (response.status === 401 && !endpoints.includes("/api/refresh")) {
+    try {
+      if (!refreshPromise) {
+        refreshPromise = auth.refreshToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
+      await refreshPromise;
+      token = auth.token;
+      response = await sendRequest(endpoints, options, token);
+    } catch (error) {
+      auth.clearAuth();
+      router.push({
+        name: "login",
+      });
+      throw new Error("Session expired");
+    }
+  }
   return response;
 }
